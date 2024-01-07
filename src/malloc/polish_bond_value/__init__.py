@@ -18,6 +18,9 @@ class Calculator:
         """Initialize the calculator with data from the given URL."""
         self.bond_info = pd.read_excel(data_url, sheet_name=None)
 
+    def bond_maturity_date(self, bond_name: str, purchase_date: dt.date) -> dt.date:
+        """Return the maturity date of a bond."""                
+        return dt.datetime.strptime(bond_name[3:], "%m%y").replace(day=purchase_date.day)
 
     def _ROS(self, bi: pd.DataFrame, periods) -> pd.DataFrame:
         """Calculate the value of a ROS bond."""
