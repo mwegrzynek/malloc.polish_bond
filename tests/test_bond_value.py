@@ -6,7 +6,7 @@ import pytest
 import pandas as pd
 
 
-from malloc.polish_bond_value.calculations import bond_value, bond_value_decimal
+from malloc.polish_bond_value.calculations import bond_value
 
 
 def test_bond_value_1():
