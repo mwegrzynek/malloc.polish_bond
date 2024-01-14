@@ -1,30 +1,68 @@
 import datetime as dt
-from decimal import Decimal
+
+
+from decimal import Decimal, getcontext
+
 
 import pandas as pd
+from dateutil.relativedelta import relativedelta
+
+
+TWO_PLACES = Decimal("0.01")
+
 
 def bond_maturity_date(bond_name: str, purchase_date: dt.date) -> dt.date:
     """Return the maturity date of a bond."""                
     return dt.datetime.strptime(bond_name[3:], "%m%y").replace(day=purchase_date.day).date()
 
-def bond_value(bond_returns: pd.DataFrame, purchase_date: dt.date, valuation_date: dt.date) -> Decimal:
+
+def bond_value_decimal(bond_returns: list[Decimal], period_length: int, purchase_date: dt.date, valuation_date: dt.date) -> Decimal:
     """Calculate the value of a bond. bond_percentages is a DataFrame with columns:
         - change_date: date of the change of the return
         - return: return of the bond in percent
-    """
+    """    
+    current_value = Decimal(100)
+    current_date = purchase_date    
 
-    start_value = Decimal(300.0)
-    periods = (
-        bond_returns
-        .query("change_date <= @valuation_date")    
-        .assign(
-            current_value=start_value
-        )
-        .assign(            
-            current_value=lambda df: (
-                Decimal(100) + df["return"].shift(-1).fillna(Decimal(0))
-            ) / Decimal(100) * df["current_value"].shift(-1).fillna(start_value)
-        )
+    for bond_return in bond_returns:
+        previous_date = current_date        
+        current_date = current_date + relativedelta(months=period_length)
+
+        if current_date > valuation_date:
+            break
+
+        current_value = (current_value * (Decimal(100) + bond_return) / Decimal(100)).quantize(TWO_PLACES)
+    
+    # Compute last value    
+    current_value = current_value + (
+        current_value * bond_return / Decimal(100) * 
+        Decimal((valuation_date - previous_date).days) / Decimal((current_date - previous_date).days)
     )
 
-    print(periods)
+    return current_value.quantize(TWO_PLACES)
+
+
+def bond_value(bond_returns: list[Decimal], period_length: int, purchase_date: dt.date, valuation_date: dt.date) -> Decimal:
+    """Calculate the value of a bond. bond_percentages is a DataFrame with columns:
+        - change_date: date of the change of the return
+        - return: return of the bond in percent
+    """    
+    current_value = 100
+    current_date = purchase_date    
+
+    for bond_return in bond_returns:
+        previous_date = current_date        
+        current_date = current_date + relativedelta(months=period_length)
+
+        if current_date > valuation_date:
+            break
+
+        current_value = round(current_value * (100 + bond_return) / 100, 2)
+    
+    # Compute last value    
+    current_value = current_value + (
+        current_value * bond_return / 100 * 
+        (valuation_date - previous_date).days / (current_date - previous_date).days
+    )
+
+    return round(current_value, 2)
