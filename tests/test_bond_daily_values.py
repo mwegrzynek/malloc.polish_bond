@@ -18,7 +18,7 @@ def test_bond_value_1():
         dt.date(2024, 1, 1),
         dt.date(2024, 1, 14)
     )
-    assert res.loc[dt.datetime(2020, 7, 31), "value"] == 102.8
+    assert res.loc[dt.datetime(2020, 7, 31), "value"] == 102.80
     assert res.loc[dt.datetime(2024, 1, 14), "value"] == 141.35
 
 # def test_bond_value_2():
