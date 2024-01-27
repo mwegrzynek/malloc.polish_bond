@@ -37,6 +37,12 @@ class Bond:
                 
     def value(self, valuation_date: dt.date) -> float:        
         """Calculate the value of a bond. Rates is a list of rates in periods, period_length is a capitalization period in months"""    
+        if valuation_date < self.purchase_date:
+            raise ValueError(f"Valuation date {valuation_date} is before purchase date {self.purchase_date}.")
+        
+        if valuation_date > self.maturity_date: 
+            return 0.0
+
         current_value = self.starting_value
         current_date = self.purchase_date
 
@@ -59,6 +65,21 @@ class Bond:
 
     def daily_values(self, date_start: dt.date, date_end: dt.date) -> pd.DataFrame:
         """Calculate the value of a bond. Rates is a list of rates in periods, period_length is a capitalization period in months"""    
+        if date_start > date_end:
+            raise ValueError(f"Start date {date_start} is after end date {date_end}.")
+        
+        if date_start < self.purchase_date:
+            raise ValueError(f"Start date {date_start} is before purchase date {self.purchase_date}.")
+        
+        if date_start > self.maturity_date:
+            raise ValueError(f"Start date {date_start} is after maturity date {self.maturity_date}.")
+
+        if date_end < self.purchase_date:
+            raise ValueError(f"End date {date_end} is before purchase date {self.purchase_date}.")
+        
+        if date_end > self.maturity_date:
+            raise ValueError(f"End date {date_end} is after maturity date {self.maturity_date}.")
+        
         current_value = self.starting_value
         current_date = self.purchase_date  
 
