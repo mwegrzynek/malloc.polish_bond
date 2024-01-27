@@ -9,22 +9,30 @@ DATA_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
 
 
 @pytest.fixture(scope="session")
-def bond_factory():
-    from malloc.polish_bond_value.bond import BondFactory
+def bond_maker():
+    from malloc.polish_bond_value.bond import BondMaker
     data_path = os.path.join(DATA_DIR, "Dane_dotyczace_obligacji_detalicznych.xls")
-    return BondFactory(data_path)
+    return BondMaker(data_path)
 
 
 @pytest.fixture()
-def ROS0725(bond_factory):
-    return bond_factory("ROS0725", dt.date(2019, 7, 31))
+def ROS0725(bond_maker):
+    return bond_maker("ROS0725", dt.date(2019, 7, 31))
 
 
 @pytest.fixture()
-def ROS0328(bond_factory):
-    return bond_factory("ROS0328", dt.date(2022, 3, 30))
+def ROS0328(bond_maker):
+    return bond_maker("ROS0328", dt.date(2022, 3, 30))
 
 
 @pytest.fixture()
-def EDO1033(bond_factory):
-    return bond_factory("EDO1033", dt.date(2023, 10, 30))
+def EDO1033(bond_maker):
+    return bond_maker("EDO1033", dt.date(2023, 10, 30))
+
+@pytest.fixture()
+def OTS0119(bond_maker):
+    return bond_maker("OTS0119", dt.date(2018, 10, 1))
+
+@pytest.fixture()
+def OTS0324(bond_maker):
+    return bond_maker("OTS0324", dt.date(2023, 12, 1))

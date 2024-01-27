@@ -6,29 +6,42 @@ import pandas as pd
 from dateutil.relativedelta import relativedelta
 
 
-BondType = NamedTuple("Bond", [("duration", int), ("rates_offset", int)])
+BondType = NamedTuple(
+    "Bond", [
+        ("duration", int), 
+        ("period_length", int), 
+        ("rates_offset", int)
+    ]
+)
 
 
 BOND_TYPES = {
-    "COI": BondType(4, 10),
-    "ROS": BondType(6, 9),
-    "EDO": BondType(10, 9),
+    "OTS": BondType(1, 3, 9),
+    "COI": BondType(4, 12, 10),
+    "ROS": BondType(6, 12, 9),
+    "ROD": BondType(12, 12, 9),
+    "EDO": BondType(10, 12, 9),
 }
 
 
 class Bond:
 
-    def __init__(self, kind: str, series: str, starting_value: float, purchase_date: dt.date, rates: list[float], period_length: int):        
+    def __init__(
+            self, kind: str, series: str, duration: int, 
+            period_length: int, starting_value: float, 
+            purchase_date: dt.date, rates: list[float]
+    ):        
         self.kind = kind
         self.series = series
         self.name = kind + series
         self.period_length = period_length
+        self.duration = duration
 
         self.starting_value = starting_value
 
         self.purchase_date = purchase_date
         self.maturity_date = dt.datetime.strptime(self.name[3:], "%m%y").replace(day=self.purchase_date.day).date()
-        self.nominal_purchase_date = (self.maturity_date - relativedelta(months=BOND_TYPES[self.kind].duration * self.period_length))
+        self.nominal_purchase_date = (self.maturity_date - relativedelta(months=self.duration * self.period_length))
 
         if self.nominal_purchase_date != self.purchase_date:
             raise ValueError(f"Bond name {self.name} is not consistent with purchase date {purchase_date}.")
@@ -53,7 +66,7 @@ class Bond:
             if current_date > valuation_date:
                 break
 
-            current_value = round(current_value * (1 + rate), 2)            
+            current_value = round(current_value * (1 + rate) * self.period_length / 12, 2)            
 
         # Compute last value    
         current_value = current_value + (
@@ -87,7 +100,7 @@ class Bond:
 
         for rate in self.rates:          
             current_date = current_date + relativedelta(months=self.period_length)        
-            current_value = round(current_value * (1+ rate), 2)    
+            current_value = round(current_value * (1 + rate) * self.period_length / 12, 2)    
             res.append((current_date, current_value))
         
         res = (
@@ -107,7 +120,7 @@ class Bond:
         return res
     
 
-class BondFactory:    
+class BondMaker:
           
     def __init__(self, data_url: str="https://api.dane.gov.pl/resources/53432,sprzedaz-obligacji-detalicznych/file"):
         """Initialize the factory with data from the given URL."""
@@ -126,4 +139,4 @@ class BondFactory:
         bi = self.bond_info[bond_kind].query("Seria == @bond_name")
         rates = [rt for _, rt in bi.iloc[0, bd.rates_offset:bd.rates_offset + bd.duration].items()]
         
-        return Bond(bond_kind, bond_series, bi.iloc[0, 5], purchase_date, rates, 12)
+        return Bond(bond_kind, bond_series, bd.duration, bd.period_length, bi.iloc[0, 5], purchase_date, rates)
