@@ -47,8 +47,8 @@ class Bond:
             raise ValueError(f"Bond name {self.name} is not consistent with purchase date {purchase_date}.")
         
         self.rates = rates
-        self._compute_daily_values()
-
+        self._last_updated = None
+        
     def _compute_daily_values(self):
         current_value = self.starting_value
         current_date = self.purchase_date  
@@ -74,16 +74,25 @@ class Bond:
                 value=lambda df: df["value"].round(2)        
             )
         )
+        self._last_updated = dt.date.today()
+
+    @property
+    def daily_values(self) -> pd.DataFrame:
+        """Return a dataframe with daily values."""
+        if self._last_updated is None or self._last_updated < dt.today(): 
+            self._compute_daily_values()
+        
+        return self._daily_values
 
     def value(self, valuation_date: dt.date) -> float:        
         """Calculate the value of a bond at a valuation date"""            
-        return self._daily_values.loc[
+        return self.daily_values.loc[
             # Convert to datetime
             pd.to_datetime(valuation_date),
             "value"
         ]
 
-    def daily_values(self, date_start: dt.date=None, date_end: dt.date=None) -> pd.DataFrame:
+    def values_in_period(self, date_start: dt.date=None, date_end: dt.date=None) -> pd.DataFrame:
         """Returns a dataframe with daily values with param conversion and validation."""
         if date_start is None:
             date_start = self.purchase_date
@@ -106,7 +115,7 @@ class Bond:
         if date_start > date_end:
             raise ValueError(f"Start date {date_start} is after end date {date_end}.")
             
-        return self._daily_values.loc[
+        return self.daily_values.loc[
             pd.to_datetime(date_start):pd.to_datetime(date_end)
         ].copy()
         
