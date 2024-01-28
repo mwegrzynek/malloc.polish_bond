@@ -36,3 +36,7 @@ def OTS0119(bond_maker):
 @pytest.fixture()
 def OTS0324(bond_maker):
     return bond_maker("OTS0324", dt.date(2023, 12, 1))
+
+@pytest.fixture()
+def OTS0722(bond_maker):
+    return bond_maker("OTS0722", dt.date(2022, 4, 15))

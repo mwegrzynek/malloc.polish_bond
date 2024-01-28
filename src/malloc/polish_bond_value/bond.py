@@ -57,22 +57,24 @@ class Bond:
             return 0.0
 
         current_value = self.starting_value
-        current_date = self.purchase_date
+        current_date = self.purchase_date        
 
         for rate in self.rates:
             previous_date = current_date        
             current_date = current_date + relativedelta(months=self.period_length)
 
-            if current_date > valuation_date:
+            period_rate = rate * self.period_length / 12
+
+            if current_date >= valuation_date:
                 break
+            
+            current_value = round(current_value + current_value * period_rate, 2)                        
 
-            current_value = round(current_value * (1 + rate) * self.period_length / 12, 2)            
-
-        # Compute last value    
+        # Compute last value            
         current_value = current_value + (
-            current_value * rate * 
+            current_value * period_rate * 
             (valuation_date - previous_date).days / (current_date - previous_date).days
-        )
+        )        
 
         return round(current_value, 2)
 
