@@ -47,54 +47,9 @@ class Bond:
             raise ValueError(f"Bond name {self.name} is not consistent with purchase date {purchase_date}.")
         
         self.rates = rates
-                
-    def value(self, valuation_date: dt.date) -> float:        
-        """Calculate the value of a bond. Rates is a list of rates in periods, period_length is a capitalization period in months"""    
-        if valuation_date < self.purchase_date:
-            raise ValueError(f"Valuation date {valuation_date} is before purchase date {self.purchase_date}.")
-        
-        if valuation_date > self.maturity_date: 
-            return 0.0
+        self._compute_daily_values()
 
-        current_value = self.starting_value
-        current_date = self.purchase_date        
-
-        for rate in self.rates:
-            previous_date = current_date        
-            current_date = current_date + relativedelta(months=self.period_length)
-
-            period_rate = rate * self.period_length / 12
-
-            if current_date >= valuation_date:
-                break
-            
-            current_value = round(current_value + current_value * period_rate, 2)                        
-
-        # Compute last value            
-        current_value = current_value + (
-            current_value * period_rate * 
-            (valuation_date - previous_date).days / (current_date - previous_date).days
-        )        
-
-        return round(current_value, 2)
-
-    def daily_values(self, date_start: dt.date, date_end: dt.date) -> pd.DataFrame:
-        """Calculate the value of a bond. Rates is a list of rates in periods, period_length is a capitalization period in months"""    
-        if date_start > date_end:
-            raise ValueError(f"Start date {date_start} is after end date {date_end}.")
-        
-        if date_start < self.purchase_date:
-            raise ValueError(f"Start date {date_start} is before purchase date {self.purchase_date}.")
-        
-        if date_start > self.maturity_date:
-            raise ValueError(f"Start date {date_start} is after maturity date {self.maturity_date}.")
-
-        if date_end < self.purchase_date:
-            raise ValueError(f"End date {date_end} is before purchase date {self.purchase_date}.")
-        
-        if date_end > self.maturity_date:
-            raise ValueError(f"End date {date_end} is after maturity date {self.maturity_date}.")
-        
+    def _compute_daily_values(self):
         current_value = self.starting_value
         current_date = self.purchase_date  
 
@@ -102,10 +57,11 @@ class Bond:
 
         for rate in self.rates:          
             current_date = current_date + relativedelta(months=self.period_length)        
-            current_value = round(current_value * (1 + rate) * self.period_length / 12, 2)    
+            period_rate = rate * self.period_length / 12
+            current_value = round(current_value * (1 + period_rate), 2)    
             res.append((current_date, current_value))
         
-        res = (
+        self._daily_values = (
             pd
             .DataFrame(res, columns=["date", "value"])
             .assign(
@@ -119,8 +75,41 @@ class Bond:
             )
         )
 
-        return res
-    
+    def value(self, valuation_date: dt.date) -> float:        
+        """Calculate the value of a bond at a valuation date"""            
+        return self._daily_values.loc[
+            # Convert to datetime
+            pd.to_datetime(valuation_date),
+            "value"
+        ]
+
+    def daily_values(self, date_start: dt.date=None, date_end: dt.date=None) -> pd.DataFrame:
+        """Returns a dataframe with daily values with param conversion and validation."""
+        if date_start is None:
+            date_start = self.purchase_date
+        
+        elif date_start < self.purchase_date:
+            raise ValueError(f"Start date {date_start} is before purchase date {self.purchase_date}.")
+        
+        elif date_start > self.maturity_date:
+            raise ValueError(f"Start date {date_start} is after maturity date {self.maturity_date}.")
+
+        if date_end is None:
+            date_end = self.maturity_date
+        
+        elif date_end < self.purchase_date:
+            raise ValueError(f"End date {date_end} is before purchase date {self.purchase_date}.")
+        
+        elif date_end > self.maturity_date:
+            raise ValueError(f"End date {date_end} is after maturity date {self.maturity_date}.")
+        
+        if date_start > date_end:
+            raise ValueError(f"Start date {date_start} is after end date {date_end}.")
+            
+        return self._daily_values.loc[
+            pd.to_datetime(date_start):pd.to_datetime(date_end)
+        ].copy()
+        
 
 class BondMaker:
           
