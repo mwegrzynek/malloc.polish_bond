@@ -1,5 +1,6 @@
 import datetime as dt
 from typing import NamedTuple
+from enum import Enum
 
 
 import pandas as pd
@@ -10,32 +11,44 @@ BondType = NamedTuple(
     "Bond", [
         ("duration", int), 
         ("period_length", int), 
-        ("rates_offset", int)
+        ("rates_offset", int),
+        ("capitalize", bool)
     ]
 )
 
 
 BOND_TYPES = {
-    "OTS": BondType(1, 3, 9),
-    "COI": BondType(4, 12, 10),
-    "ROS": BondType(6, 12, 9),
-    "ROD": BondType(12, 12, 9),
-    "EDO": BondType(10, 12, 9),
+    "OTS": BondType(1, 3, 9, False),
+    "ROR": BondType(12, 1, 9, False),
+    "COI": BondType(4, 12, 10, False),
+    "ROS": BondType(6, 12, 9, True),
+    "ROD": BondType(12, 12, 9, True),
+    "EDO": BondType(10, 12, 9, True),
+
 }
+
+class CashFlowEvent(Enum):
+    """Enum class for cash flow events."""
+    purchase = 1
+    coupon = 2
+    redemption = 3
 
 
 class Bond:
 
     def __init__(
             self, kind: str, series: str, duration: int, 
-            period_length: int, starting_value: float, 
-            purchase_date: dt.date, rates: list[float]
+            period_length: int, capitalize: bool,
+            starting_value: float, 
+            purchase_date: dt.date, rates: list[float],
+            
     ):        
         self.kind = kind
         self.series = series
         self.name = kind + series
         self.period_length = period_length
         self.duration = duration
+        self.capitalize = capitalize
 
         self.starting_value = starting_value
 
@@ -49,38 +62,62 @@ class Bond:
         self.rates = rates
         self._last_updated = None
         
-    def _compute_daily_values(self):
-        current_value = self.starting_value
-        current_date = self.purchase_date  
-
-        res = [(self.purchase_date, current_value)]    
+    def _compute(self):
+        """Compute the daily values of the bond."""
+        previous_value = current_value = self.starting_value
+        previous_date = current_date = self.purchase_date
+                
+        cf = [(self.purchase_date, CashFlowEvent.purchase, -self.starting_value)]
+        dv = None
 
         for rate in self.rates:          
-            current_date = current_date + relativedelta(months=self.period_length)        
+            current_date = current_date + relativedelta(months=self.period_length)                    
             period_rate = rate * self.period_length / 12
-            current_value = round(current_value * (1 + period_rate), 2)    
-            res.append((current_date, current_value))
-        
-        self._daily_values = (
+            current_value = round(current_value * (1 + period_rate), 2) 
+
+            df = (
+                pd
+                .DataFrame([
+                    (previous_date, previous_value),
+                    (current_date, current_value)
+                ], 
+                columns=["date", "value"])
+                .assign(
+                    date=lambda df: pd.to_datetime(df["date"]),
+                )
+                .set_index("date")
+                .resample("D")
+                .interpolate("linear")
+                .assign(
+                    value=lambda df: df["value"].round(2)        
+                )
+            )            
+            
+            if not self.capitalize:
+                cf.append((current_date, CashFlowEvent.coupon, current_value - self.starting_value))
+                current_value = self.starting_value
+                df.iloc[-1].value = self.starting_value
+
+            previous_date = current_date
+            previous_value = current_value
+
+            dv = df if dv is None else pd.concat([dv, df.iloc[1:]])
+
+        cf.append((current_date, CashFlowEvent.redemption, current_value))
+
+        self._cash_flow = (
             pd
-            .DataFrame(res, columns=["date", "value"])
-            .assign(
-                date=lambda df: pd.to_datetime(df["date"]),
-            )
-            .set_index("date")
-            .resample("D")
-            .interpolate("linear")
-            .assign(
-                value=lambda df: df["value"].round(2)        
-            )
-        )
-        self._last_updated = dt.date.today()
+            .DataFrame(cf, columns=["date", "event", "value"])
+        )        
+        
+        self._daily_values = dv        
+        self._last_updated = dt.date.today()        
 
     @property
     def daily_values(self) -> pd.DataFrame:
         """Return a dataframe with daily values."""
         if self._last_updated is None or self._last_updated < dt.today(): 
-            self._compute_daily_values()
+            self._compute()
         
         return self._daily_values
 
@@ -139,4 +176,4 @@ class BondMaker:
         bi = self.bond_info[bond_kind].query("Seria == @bond_name")
         rates = [rt for _, rt in bi.iloc[0, bd.rates_offset:bd.rates_offset + bd.duration].items()]
         
-        return Bond(bond_kind, bond_series, bd.duration, bd.period_length, bi.iloc[0, 5], purchase_date, rates)
+        return Bond(bond_kind, bond_series, bd.duration, bd.period_length, bd.capitalize, bi.iloc[0, 5], purchase_date, rates)
