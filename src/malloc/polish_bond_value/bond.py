@@ -20,7 +20,7 @@ BondType = NamedTuple(
 BOND_TYPES = {
     "OTS": BondType(1, 3, 9, False),
     "ROR": BondType(12, 1, 9, False),
-    "COI": BondType(4, 12, 10, False),
+    "COI": BondType(4, 12, 9, False),
     "ROS": BondType(6, 12, 9, True),
     "ROD": BondType(12, 12, 9, True),
     "EDO": BondType(10, 12, 9, True),
@@ -108,6 +108,7 @@ class Bond:
         self._cash_flow = (
             pd
             .DataFrame(cf, columns=["date", "event", "value"])
+            .set_index("date")
         )        
         
         self._daily_values = dv        
@@ -116,10 +117,18 @@ class Bond:
     @property
     def daily_values(self) -> pd.DataFrame:
         """Return a dataframe with daily values."""
-        if self._last_updated is None or self._last_updated < dt.today(): 
+        if self._last_updated is None or self._last_updated < dt.date.today(): 
             self._compute()
         
         return self._daily_values
+
+    @property
+    def cash_flow(self) -> pd.DataFrame:
+        """Return a dataframe with cash flow events."""
+        if self._last_updated is None or self._last_updated < dt.date.today(): 
+            self._compute()
+        
+        return self._cash_flow
 
     def value(self, valuation_date: dt.date) -> float:        
         """Calculate the value of a bond at a valuation date"""            
@@ -164,7 +173,7 @@ class BondMaker:
         self.bond_info = pd.read_excel(data_url, sheet_name=None)
     
     def __call__(self, bond_name: str, purchase_date: dt.date) -> Bond:
-        """Calculate the value of a bond between two dates."""
+        """Return a bond object from name and purchase date."""
         bond_kind = bond_name[:3]        
         bond_series = bond_name[3:]
 

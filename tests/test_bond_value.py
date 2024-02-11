@@ -16,3 +16,10 @@ import pytest
 )
 def test_bond_value(bond, val_date, cnt, value):        
     assert bond.value(val_date) * cnt == pytest.approx(value, 0.001)
+
+def test_out_of_range_date_1(ROS0725):
+    with pytest.raises(KeyError):
+        ROS0725.value(dt.date(2018, 1, 15))
+
+    with pytest.raises(KeyError):
+        ROS0725.value(dt.date(2025, 8, 25))
