@@ -20,6 +20,8 @@ BondType = NamedTuple(
 BOND_TYPES = {
     "OTS": BondType(1, 3, 9, False),
     "ROR": BondType(12, 1, 9, False),
+    "DOR": BondType(24, 1, 9, False),
+    "TOS": BondType(1, 36, 9, False),
     "COI": BondType(4, 12, 9, False),
     "ROS": BondType(6, 12, 9, True),
     "ROD": BondType(12, 12, 9, True),

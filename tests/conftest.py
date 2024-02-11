@@ -44,3 +44,15 @@ def OTS0722(bond_maker):
 @pytest.fixture()
 def COI0924(bond_maker):
     return bond_maker("COI0924", dt.date(2020, 9, 14))
+
+@pytest.fixture()
+def ROR0124(bond_maker):
+    return bond_maker("ROR0124", dt.date(2023, 1, 14))
+
+@pytest.fixture()
+def DOR1024(bond_maker):
+    return bond_maker("DOR1024", dt.date(2022, 10, 1))
+
+@pytest.fixture()
+def TOS0626(bond_maker):
+    return bond_maker("TOS0626", dt.date(2023, 6, 1))
