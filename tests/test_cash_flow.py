@@ -4,7 +4,7 @@ import datetime as dt
 import pytest
 
 
-from malloc.polish_bond_value.bond import CashFlowEvent
+from malloc.polish_bond.bond import CashFlowEvent
 
 
 def test_cash_flow_1(COI0924):

@@ -10,7 +10,7 @@ DATA_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
 
 @pytest.fixture(scope="session")
 def bond_maker():
-    from malloc.polish_bond_value.bond import BondMaker
+    from malloc.polish_bond.bond import BondMaker
     data_path = os.path.join(DATA_DIR, "Dane_dotyczace_obligacji_detalicznych.xls")
     return BondMaker(data_path)
 

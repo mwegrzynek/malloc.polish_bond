@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "malloc-polish-bond-value"
-version = "0.1.0"
-description = "Prepares valuation tables for Polish retail bond in a format acceptable by GhostFolio"
+name = "malloc-polish-bond"
+version = "1.0.0"
+description = "Calculates daily values and cash flow for Polish retail bonds"
 authors = ["Michał Węgrzynek <michal.wegrzynek@malloc.com.pl>"]
 license = "GPL-3"
 readme = "README.md"
@@ -27,4 +27,4 @@ pythonpath = ["src"]
 
 [tool.semantic_release]
 branch = "main"
-version_variable = "src/malloc/polish_bond_value/__init__.py:__version__"
+version_variable = "src/malloc/polish_bond/__init__.py:__version__"
