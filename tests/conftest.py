@@ -56,3 +56,7 @@ def DOR1024(bond_maker):
 @pytest.fixture()
 def TOS0626(bond_maker):
     return bond_maker("TOS0626", dt.date(2023, 6, 1))
+
+@pytest.fixture()
+def TOZ0624(bond_maker):
+    return bond_maker("TOZ0624", dt.date(2021, 6, 12))

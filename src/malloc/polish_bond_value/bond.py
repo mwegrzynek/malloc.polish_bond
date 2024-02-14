@@ -9,24 +9,25 @@ from dateutil.relativedelta import relativedelta
 
 BondType = NamedTuple(
     "Bond", [
-        ("duration", int), 
+        ("number_of_periods", int), 
         ("period_length", int), 
+        ("capitalize", bool),
         ("rates_offset", int),
-        ("capitalize", bool)
+        ("constant_rate", bool)
     ]
 )
 
 
 BOND_TYPES = {
-    "OTS": BondType(1, 3, 9, False),
-    "ROR": BondType(12, 1, 9, False),
-    "DOR": BondType(24, 1, 9, False),
-    "TOS": BondType(1, 36, 9, False),
-    "COI": BondType(4, 12, 9, False),
-    "ROS": BondType(6, 12, 9, True),
-    "ROD": BondType(12, 12, 9, True),
-    "EDO": BondType(10, 12, 9, True),
-
+    "OTS": BondType(1, 3, False, 9, False),
+    "ROR": BondType(12, 1, False, 9, False),
+    "DOR": BondType(24, 1, False, 9, False),
+    "TOS": BondType(3, 12, True, 9, True),
+    "COI": BondType(4, 12, False, 9, False),
+    "EDO": BondType(10, 12, True, 9, False),
+    "ROS": BondType(6, 12, True, 9, False),
+    "ROD": BondType(12, 12, True, 9, False),
+    "TOZ": BondType(6, 6, False, 9, False),    
 }
 
 class CashFlowEvent(Enum):
@@ -39,24 +40,28 @@ class CashFlowEvent(Enum):
 class Bond:
 
     def __init__(
-            self, kind: str, series: str, duration: int, 
-            period_length: int, capitalize: bool,
+            self, 
+            kind: str, 
+            series: str, 
+            number_of_periods: int, 
+            period_length: int, 
+            capitalize: bool,
             starting_value: float, 
-            purchase_date: dt.date, rates: list[float],
-            
+            purchase_date: dt.date, 
+            rates: list[float],            
     ):        
         self.kind = kind
         self.series = series
         self.name = kind + series
         self.period_length = period_length
-        self.duration = duration
+        self.number_of_periods = number_of_periods
         self.capitalize = capitalize
 
         self.starting_value = starting_value
 
         self.purchase_date = purchase_date
         self.maturity_date = dt.datetime.strptime(self.name[3:], "%m%y").replace(day=self.purchase_date.day).date()
-        self.nominal_purchase_date = (self.maturity_date - relativedelta(months=self.duration * self.period_length))
+        self.nominal_purchase_date = (self.maturity_date - relativedelta(months=self.number_of_periods * self.period_length))
 
         if self.nominal_purchase_date != self.purchase_date:
             raise ValueError(f"Bond name {self.name} is not consistent with purchase date {purchase_date}.")
@@ -185,6 +190,9 @@ class BondMaker:
             raise ValueError(f"Bond kind {bond_kind} is not supported.")
         
         bi = self.bond_info[bond_kind].query("Seria == @bond_name")
-        rates = [rt for _, rt in bi.iloc[0, bd.rates_offset:bd.rates_offset + bd.duration].items()]
+        if bd.constant_rate:
+            rates = [bi.iloc[0, bd.rates_offset]] * bd.number_of_periods
+        else:
+            rates = [rt for _, rt in bi.iloc[0, bd.rates_offset:bd.rates_offset + bd.number_of_periods].items()]
         
-        return Bond(bond_kind, bond_series, bd.duration, bd.period_length, bd.capitalize, bi.iloc[0, 5], purchase_date, rates)
+        return Bond(bond_kind, bond_series, bd.number_of_periods, bd.period_length, bd.capitalize, bi.iloc[0, 5], purchase_date, rates)
