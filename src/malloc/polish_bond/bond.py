@@ -3,6 +3,7 @@ from typing import NamedTuple
 from enum import Enum
 
 
+from pydantic import BaseModel, PositiveInt, PositiveFloat, computed_field, model_validator
 import pandas as pd
 from dateutil.relativedelta import relativedelta
 
@@ -37,37 +38,34 @@ class CashFlowEvent(Enum):
     redemption = 3
 
 
-class Bond:
+class Bond(BaseModel):
+    kind: str
+    series: str    
+    number_of_periods: PositiveInt
+    period_length: PositiveInt
+    capitalize: bool
+    starting_value: PositiveFloat
+    purchase_date: dt.date
+    rates: list[float]
+    _last_updated: dt.date = None
+    
+    @computed_field
+    def name(self) -> str:
+        return self.kind + self.series
+    
+    @computed_field
+    def maturity_date(self) -> dt.date:
+        return dt.datetime.strptime(self.name[3:], "%m%y").replace(day=self.purchase_date.day).date()
 
-    def __init__(
-            self, 
-            kind: str, 
-            series: str, 
-            number_of_periods: int, 
-            period_length: int, 
-            capitalize: bool,
-            starting_value: float, 
-            purchase_date: dt.date, 
-            rates: list[float],            
-    ):        
-        self.kind = kind
-        self.series = series
-        self.name = kind + series
-        self.period_length = period_length
-        self.number_of_periods = number_of_periods
-        self.capitalize = capitalize
+    @computed_field
+    def nominal_purchase_date(self) -> dt.date:
+        return self.maturity_date - relativedelta(months=self.number_of_periods * self.period_length)
 
-        self.starting_value = starting_value
-
-        self.purchase_date = purchase_date
-        self.maturity_date = dt.datetime.strptime(self.name[3:], "%m%y").replace(day=self.purchase_date.day).date()
-        self.nominal_purchase_date = (self.maturity_date - relativedelta(months=self.number_of_periods * self.period_length))
-
+    @model_validator(mode="after")
+    def check_purchase_dates(self) -> 'Bond':
         if self.nominal_purchase_date != self.purchase_date:
-            raise ValueError(f"Bond name {self.name} is not consistent with purchase date {purchase_date}.")
-        
-        self.rates = rates
-        self._last_updated = None
+            raise ValueError(f"Bond name {self.name} is not consistent with purchase date {self.purchase_date}.")
+        return self
         
     def _compute(self):
         """Compute the daily values of the bond."""
@@ -195,4 +193,13 @@ class BondMaker:
         else:
             rates = [rt for _, rt in bi.iloc[0, bd.rates_offset:bd.rates_offset + bd.number_of_periods].items()]
         
-        return Bond(bond_kind, bond_series, bd.number_of_periods, bd.period_length, bd.capitalize, bi.iloc[0, 5], purchase_date, rates)
+        return Bond(
+            kind=bond_kind, 
+            series=bond_series, 
+            number_of_periods=bd.number_of_periods, 
+            period_length=bd.period_length, 
+            capitalize=bd.capitalize, 
+            starting_value=bi.iloc[0, 5], 
+            purchase_date=purchase_date, 
+            rates=rates
+        )
