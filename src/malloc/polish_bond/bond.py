@@ -61,6 +61,14 @@ class Bond(BaseModel):
     @computed_field
     def nominal_purchase_date(self) -> dt.date:
         return self.maturity_date - relativedelta(months=self.number_of_periods * self.period_length)
+    
+    @computed_field
+    def current_value(self) -> float:
+        print(self.daily_values)
+        return self.daily_values.loc[
+            dt.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0), 
+            "value"
+        ]
 
     @model_validator(mode="after")
     def check_purchase_dates(self) -> 'Bond':
