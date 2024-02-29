@@ -63,8 +63,7 @@ class Bond(BaseModel):
         return self.maturity_date - relativedelta(months=self.number_of_periods * self.period_length)
     
     @computed_field
-    def current_value(self) -> float:
-        print(self.daily_values)
+    def current_value(self) -> float:        
         return self.daily_values.loc[
             dt.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0), 
             "value"
