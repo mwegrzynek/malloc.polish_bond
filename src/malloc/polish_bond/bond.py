@@ -5,6 +5,7 @@ from enum import Enum
 
 from pydantic import BaseModel, PositiveInt, PositiveFloat, computed_field, model_validator
 import pandas as pd
+import numpy as np
 from dateutil.relativedelta import relativedelta
 
 
@@ -46,7 +47,7 @@ class Bond(BaseModel):
     capitalize: bool
     starting_value: PositiveFloat
     purchase_date: dt.date
-    rates: list[float]
+    rates: list[float | None]
     _last_updated: dt.date = None
     
     @computed_field
@@ -75,7 +76,11 @@ class Bond(BaseModel):
         cf = [(self.purchase_date, CashFlowEvent.purchase, -self.starting_value)]
         dv = None
 
-        for rate in self.rates:          
+        for rate in self.rates:
+            
+            if rate is None:
+                break
+
             current_date = current_date + relativedelta(months=self.period_length)                    
             period_rate = rate * self.period_length / 12
             current_value = round(current_value * (1 + period_rate), 2) 
@@ -173,7 +178,7 @@ class Bond(BaseModel):
 
 class BondMaker:
           
-    def __init__(self, data_url: str="https://api.dane.gov.pl/resources/53432,sprzedaz-obligacji-detalicznych/file"):
+    def __init__(self, data_url: str="https://api.dane.gov.pl/resources/54588,sprzedaz-obligacji-detalicznych/file"):
         """Initialize the factory with data from the given URL."""
         self.bond_info = pd.read_excel(data_url, sheet_name=None)
     
@@ -187,7 +192,12 @@ class BondMaker:
         except KeyError:
             raise ValueError(f"Bond kind {bond_kind} is not supported.")
         
-        bi = self.bond_info[bond_kind].query("Seria == @bond_name")
+        bi = (
+            self
+            .bond_info[bond_kind]
+            .query("Seria == @bond_name")
+            .replace([np.nan], [None])
+        )
         if bd.constant_rate:
             rates = [bi.iloc[0, bd.rates_offset]] * bd.number_of_periods
         else:

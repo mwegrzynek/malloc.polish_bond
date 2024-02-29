@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "malloc-polish-bond"
-version = "1.0.1"
+version = "1.0.2"
 description = "Calculates daily values and cash flow for Polish retail bonds"
 authors = ["Michał Węgrzynek <michal.wegrzynek@malloc.com.pl>"]
 license = "GPL-3"
