@@ -35,9 +35,9 @@ BOND_TYPES = {
 
 class CashFlowEvent(Enum):
     """Enum class for cash flow events."""
-    purchase = 1
-    coupon = 2
-    redemption = 3
+    purchase = "purchase"
+    coupon = "coupon"
+    redemption = "redemption"
 
 
 class Bond(BaseModel):
