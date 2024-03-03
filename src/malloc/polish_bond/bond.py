@@ -3,10 +3,11 @@ from typing import NamedTuple
 from enum import Enum
 
 
-from pydantic import BaseModel, PositiveInt, PositiveFloat, computed_field, model_validator
-import pandas as pd
-import numpy as np
 from dateutil.relativedelta import relativedelta
+import numpy as np
+import pandas as pd
+from pydantic import BaseModel, PositiveInt, PositiveFloat, computed_field, model_validator, ConfigDict
+import requests
 
 
 BondType = NamedTuple(
@@ -183,12 +184,14 @@ class Bond(BaseModel):
         ].copy()
         
 
-class BondMaker:
-          
-    def __init__(self, data_url: str="https://api.dane.gov.pl/resources/54588,sprzedaz-obligacji-detalicznych/file"):
-        """Initialize the factory with data from the given URL."""
-        self.bond_info = pd.read_excel(data_url, sheet_name=None)
-    
+
+class BondMaker:    
+
+    def __init__(self, data_url: str):
+        """Initialize the factory with data from the given URL"""        
+        self.data_url = data_url
+        self.bond_info = pd.read_excel(self.data_url, sheet_name=None)
+
     def __call__(self, bond_name: str, purchase_date: dt.date) -> Bond:
         """Return a bond object from name and purchase date."""
         bond_kind = bond_name[:3]        
