@@ -1,2 +1,2 @@
 from .bond import Bond, BondMaker
-from .dataset_info import DatasetInfo
+from .dataset import DatasetInfo
