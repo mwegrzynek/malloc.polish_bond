@@ -211,7 +211,10 @@ class BondMaker:
         if bd.constant_rate:
             rates = [bi.iloc[0, bd.rates_offset]] * bd.number_of_periods
         else:
-            rates = [rt for _, rt in bi.iloc[0, bd.rates_offset:bd.rates_offset + bd.number_of_periods].items()]
+            try:
+                rates = [rt for _, rt in bi.iloc[0, bd.rates_offset:bd.rates_offset + bd.number_of_periods].items()]
+            except IndexError as e:
+                raise ValueError(f"Bond {bond_name} doesn't have published information")
         
         return Bond(
             kind=bond_kind, 
